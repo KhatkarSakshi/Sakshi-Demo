@@ -1,0 +1,226 @@
+# SecureEye Training Dataset Configuration
+# This notebook helps configure and manage training datasets for the SecureEye surveillance system
+
+import yaml
+import os
+from pathlib import Path
+import shutil
+
+# Define the dataset configuration for SecureEye surveillance system
+secureeye_dataset_config = {
+    'path': '../datasets/secureeye',  # dataset root directory
+    'train': 'train/images',  # train images directory
+    'val': 'val/images',      # validation images directory
+    'test': 'test/images',    # test images directory
+    
+    # Classes for surveillance detection
+    'names': {
+        0: 'person',
+        1: 'fire',
+        2: 'smoke',
+        3: 'weapon',
+        4: 'vehicle',
+        5: 'crowd',
+        6: 'intrusion',
+        7: 'violence',
+        8: 'running',
+        9: 'falling',
+        10: 'suspicious_activity',
+        11: 'unauthorized_access',
+        12: 'vandalism',
+        13: 'theft',
+        14: 'loitering'
+    }
+}
+
+# Create the dataset configuration file
+def create_dataset_config():
+    """Create the SecureEye dataset configuration YAML file"""
+    config_path = Path('data/secureeye.yaml')
+    
+    with open(config_path, 'w') as f:
+        yaml.dump(secureeye_dataset_config, f, default_flow_style=False, sort_keys=False)
+    
+    print(f"Dataset configuration created at: {config_path}")
+    return config_path
+
+# Dataset directory structure
+dataset_structure = """
+secureeye/
+├── train/
+│   ├── images/
+│   └── labels/
+├── val/
+│   ├── images/
+│   └── labels/
+└── test/
+    ├── images/
+    └── labels/
+"""
+
+print("SecureEye Dataset Structure:")
+print(dataset_structure)
+
+# Create dataset directories
+def create_dataset_directories():
+    """Create the necessary directory structure for the SecureEye dataset"""
+    base_path = Path('../datasets/secureeye')
+    
+    directories = [
+        base_path / 'train' / 'images',
+        base_path / 'train' / 'labels',
+        base_path / 'val' / 'images',
+        base_path / 'val' / 'labels',
+        base_path / 'test' / 'images',
+        base_path / 'test' / 'labels'
+    ]
+    
+    for directory in directories:
+        directory.mkdir(parents=True, exist_ok=True)
+        print(f"Created directory: {directory}")
+
+# Training configuration
+training_config = {
+    'epochs': 100,
+    'batch_size': 16,
+    'img_size': 640,
+    'weights': 'yolov5s.pt',  # Start with pretrained weights
+    'data': 'data/secureeye.yaml',
+    'hyp': 'data/hyps/hyp.scratch-low.yaml',
+    'cache': False,
+    'device': '0',  # GPU device
+    'workers': 8,
+    'project': 'runs/train',
+    'name': 'secureeye_model',
+    'exist_ok': True,
+    'patience': 50,
+    'save_period': 10,
+    'local_rank': -1
+}
+
+# Data augmentation settings for surveillance
+surveillance_augmentation = {
+    'hsv_h': 0.015,  # HSV-Hue augmentation (fraction)
+    'hsv_s': 0.7,    # HSV-Saturation augmentation (fraction)
+    'hsv_v': 0.4,    # HSV-Value augmentation (fraction)
+    'degrees': 0.0,  # Image rotation (+/- deg)
+    'translate': 0.1, # Image translation (+/- fraction)
+    'scale': 0.5,    # Image scale (+/- gain)
+    'shear': 0.0,    # Image shear (+/- deg)
+    'perspective': 0.0, # Image perspective (+/- fraction), range 0-0.001
+    'flipud': 0.0,   # Image flip up-down (probability)
+    'fliplr': 0.5,   # Image flip left-right (probability)
+    'mosaic': 1.0,   # Image mosaic (probability)
+    'mixup': 0.0,    # Image mixup (probability)
+    'copy_paste': 0.0, # Segment copy-paste (probability)
+}
+
+# Class distribution guidelines
+class_distribution = {
+    'person': '30%',           # Most common in surveillance
+    'fire': '5%',              # Critical for safety
+    'smoke': '5%',             # Fire precursor
+    'weapon': '3%',            # Security critical
+    'vehicle': '15%',          # Common in surveillance
+    'crowd': '10%',            # Important for monitoring
+    'intrusion': '8%',         # Security event
+    'violence': '5%',          # Critical security event
+    'running': '8%',           # Suspicious activity
+    'falling': '3%',           # Safety concern
+    'suspicious_activity': '5%', # General suspicious behavior
+    'unauthorized_access': '3%', # Security breach
+    'vandalism': '2%',         # Property damage
+    'theft': '2%',             # Criminal activity
+    'loitering': '5%'          # Suspicious behavior
+}
+
+print("\nClass Distribution Guidelines:")
+for class_name, percentage in class_distribution.items():
+    print(f"{class_name}: {percentage}")
+
+# Data collection guidelines
+data_collection_guidelines = """
+Data Collection Guidelines for SecureEye:
+
+1. Image Quality:
+   - Resolution: Minimum 640x640 pixels
+   - Format: JPG, PNG
+   - Lighting: Various conditions (day, night, low-light)
+   - Weather: Different weather conditions
+
+2. Camera Angles:
+   - CCTV-style overhead views
+   - Security camera angles
+   - Various distances and perspectives
+
+3. Scenarios to Capture:
+   - Normal activities (baseline)
+   - Fire and smoke incidents
+   - Security breaches
+   - Crowd gatherings
+   - Suspicious behaviors
+   - Emergency situations
+
+4. Annotation Guidelines:
+   - Use YOLO format (class_id x_center y_center width height)
+   - Ensure accurate bounding boxes
+   - Include all visible instances
+   - Label occluded objects when possible
+
+5. Dataset Split:
+   - Train: 70%
+   - Validation: 20%
+   - Test: 10%
+"""
+
+print("\n" + data_collection_guidelines)
+
+# Training commands
+training_commands = """
+# Basic training command
+python train.py --data data/secureeye.yaml --weights yolov5s.pt --img 640 --batch 16 --epochs 100
+
+# Training with custom hyperparameters
+python train.py --data data/secureeye.yaml --weights yolov5s.pt --img 640 --batch 16 --epochs 100 --hyp data/hyps/hyp.scratch-low.yaml
+
+# Multi-GPU training
+python -m torch.distributed.run --nproc_per_node 4 --master_port 1 train.py --data data/secureeye.yaml --weights yolov5s.pt --img 640 --batch 16 --epochs 100 --device 0,1,2,3
+
+# Resume training from checkpoint
+python train.py --data data/secureeye.yaml --weights runs/train/secureeye_model/weights/last.pt --img 640 --batch 16 --epochs 100 --resume
+"""
+
+print("\nTraining Commands:")
+print(training_commands)
+
+# Validation and testing
+validation_commands = """
+# Validate the trained model
+python val.py --data data/secureeye.yaml --weights runs/train/secureeye_model/weights/best.pt --img 640
+
+# Test on custom images
+python detect.py --weights runs/train/secureeye_model/weights/best.pt --source path/to/test/images --img 640 --conf 0.25
+
+# Live detection
+python detect_live.py --weights runs/train/secureeye_model/weights/best.pt --source 0 --img 640 --conf 0.25
+"""
+
+print("\nValidation and Testing Commands:")
+print(validation_commands)
+
+# Execute the setup
+if __name__ == "__main__":
+    print("Setting up SecureEye training dataset...")
+    
+    # Create dataset configuration
+    config_path = create_dataset_config()
+    
+    # Create directory structure
+    create_dataset_directories()
+    
+    print("\nSetup complete! Next steps:")
+    print("1. Add your training images to ../datasets/secureeye/train/images/")
+    print("2. Add corresponding labels to ../datasets/secureeye/train/labels/")
+    print("3. Add validation images to ../datasets/secureeye/val/images/")
+    print("4. Add validation labels to ../datasets/secureeye/val/labels/")
+    print("5. Run training with: python train.py --data data/secureeye.yaml --weights yolov5s.pt --img 640 --batch 16 --epochs 100")

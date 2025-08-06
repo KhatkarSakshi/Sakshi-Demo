@@ -1,0 +1,16 @@
+# YOLOv5 Live Detection Requirements
+# Install with: pip install -r detection_requirements.txt
+
+# Core dependencies
+torch>=1.8.0
+torchvision>=0.9.0
+opencv-python>=4.1.1
+numpy>=1.23.5
+pillow>=10.3.0
+
+# YOLOv5 specific
+ultralytics>=8.2.64
+
+# Optional: For better performance
+# tensorrt  # NVIDIA GPU acceleration
+# onnx  # ONNX export support 
